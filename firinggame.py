@@ -6,7 +6,7 @@ import time
 pygame.init()
 WIDTH, HEIGHT = 1200, 800 
 screen = pygame.display.set_mode((WIDTH, HEIGHT))
-pygame.display.set_caption("Box Shooter - Smart Chaser BOT") 
+pygame.display.set_caption("Firing Range") 
 clock = pygame.time.Clock() 
 
 # 2. COLORS - Game color palette
@@ -23,7 +23,7 @@ font = pygame.font.SysFont(None, 40)
 name_font = pygame.font.SysFont(None, 25)  
 
 # 4. GAME VARIABLES - Player and BOT details
-player_name = "Mumbai" 
+player_name = "Warrior" 
 enemy_name = "BOT"     
 
 player_x, player_y = 100, 300
