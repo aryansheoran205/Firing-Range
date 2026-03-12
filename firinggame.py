@@ -2,14 +2,14 @@ import pygame
 import math
 import time
 
-# 1. SETUP - Game ki shuruaat aur screen
+# 1. SETUP - Initialize game and screen
 pygame.init()
 WIDTH, HEIGHT = 1200, 800 
 screen = pygame.display.set_mode((WIDTH, HEIGHT))
 pygame.display.set_caption("Box Shooter - Smart Chaser BOT") 
 clock = pygame.time.Clock() 
 
-# 2. COLORS - Game ke saare rang
+# 2. COLORS - Game color palette
 BG_COLOR = (30, 30, 30)      
 PLAYER_COLOR = (0, 128, 255) 
 ENEMY_COLOR = (255, 50, 50)  
@@ -18,11 +18,11 @@ BULLET_COLOR = (255, 255, 0)
 WALL_COLOR = (200, 200, 200) 
 WHITE = (255, 255, 255)      
 
-# 3. FONTS - Text ki writing style
+# 3. FONTS - Text writing styles
 font = pygame.font.SysFont(None, 40)       
 name_font = pygame.font.SysFont(None, 25)  
 
-# 4. GAME VARIABLES - Player aur BOT ki details
+# 4. GAME VARIABLES - Player and BOT details
 player_name = "Mumbai" 
 enemy_name = "BOT"     
 
@@ -30,17 +30,17 @@ player_x, player_y = 100, 300
 player_size = 40 
 
 # ---> BOT CODE: SETUP <---
-# Bot kahan se shuru hoga. X=800 rakha hai taaki wo line ke andar paida ho.
+# Initial spawn position of the Bot (X=800 keeps it within boundary)
 enemy_x, enemy_y = 800, 400 
 
-# --- Deewar (Walls) Setup ---
+# --- Wall (Obstacles) Setup ---
 walls = [
     pygame.Rect(300, 200, 500, 15), 
     pygame.Rect(200, 600, 500, 15), 
     pygame.Rect(900, 200, 15, 400)  
 ]
 
-# --- Timers aur Cooldown ---
+# --- Timers and Cooldowns ---
 FIRE_COOLDOWN = 5.0    
 SHIELD_COOLDOWN = 10.0 
 SHIELD_DURATION = 3.0  
@@ -53,30 +53,30 @@ bullets = []
 enemy_bullets = []  
 
 # ---> BOT CODE: SHOOT TIMER <---
-# Bot ne aakhri goli kab chalayi thi, usko yaad rakhne ke liye timer
+# Timer to track the last time the Bot fired a bullet
 last_enemy_shot = time.time()
 
 # Health Points (HP)
 player_hp = 3
-enemy_hp = 3 # Bot ki Health
+enemy_hp = 3 # Bot's Health
 
-# Game jeetne ya haarne ka status
+# Game Win/Loss status
 game_over = False
 win = False
 
 
-# 5. MAIN GAME LOOP - Jab tak game chalega
+# 5. MAIN GAME LOOP - Runs until the game is closed
 running = True
 while running:
     screen.fill(BG_COLOR) 
     current_time = time.time() 
 
-    # --- Events (Keyboard aur Mouse ka use) ---
+    # --- Events (Keyboard and Mouse inputs) ---
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
             running = False 
         
-        # --- Player Goli Chalayega ---
+        # --- Player Firing Logic ---
         if event.type == pygame.MOUSEBUTTONDOWN and not game_over:
             if current_time - last_fire_time >= FIRE_COOLDOWN:
                 mx, my = pygame.mouse.get_pos() 
@@ -86,12 +86,12 @@ while running:
             else:
                 print("Wait! Gun reloading...")
 
-        # --- Game Restart karna ---
+        # --- Game Restart Logic ---
         if event.type == pygame.KEYDOWN and game_over:
             if event.key == pygame.K_SPACE:
                 player_hp, enemy_hp = 3, 3
                 player_x, player_y = 100, 300
-                enemy_x, enemy_y = 800, 400 # Restart par bot wapas 800 pe aayega
+                enemy_x, enemy_y = 800, 400 # Bot resets to 800 on restart
                 bullets.clear()
                 enemy_bullets.clear()
                 game_over = False
@@ -132,54 +132,47 @@ while running:
 
         
         # ---> BOT CODE: AI & MOVEMENT <---
-        enemy_speed = 3 # Bot ki bhagne ki speed (Isko bada/ghata sakte ho)
-        # Bot ka box banaya check karne ke liye ki wo kahan takraya hai
+        enemy_speed = 3 # Bot movement speed (Adjustable)
+        # Create a rectangle for the Bot to check for collisions
         enemy_rect = pygame.Rect(enemy_x, enemy_y, player_size, player_size)
 
-
-
-        #Gemini
-
-
-        # Bot X-Axis Movement (Left-Right check karega aur player ki taraf aayega)
+        # Bot X-Axis Movement (Chases player horizontally)
         old_ex = enemy_x
         if enemy_x < player_x: enemy_x += enemy_speed
         elif enemy_x > player_x: enemy_x -= enemy_speed
         enemy_rect.x = enemy_x
-        # Agar bot deewar se takraya, toh X disha mein wahi ruk jayega (Par Y mein bhagta rahega)
+        # If Bot hits a wall, stop X-movement but allow Y-movement
         if enemy_rect.collidelist(walls) != -1: enemy_x = old_ex
 
-        # Bot Y-Axis Movement (Up-Down check karega aur player ki taraf aayega)
+        # Bot Y-Axis Movement (Chases player vertically)
         old_ey = enemy_y
         if enemy_y < player_y: enemy_y += enemy_speed
         elif enemy_y > player_y: enemy_y -= enemy_speed
         enemy_rect.y = enemy_y
-        # Agar deewar aayi toh Y disha mein rukega (Slide logic)
+        # If wall is hit, stop Y-movement (Slide logic)
         if enemy_rect.collidelist(walls) != -1: enemy_y = old_ey
 
-        # Bot Screen Borders (Bot ko screen ke bahar jaane se rokne ka code)
+        # Bot Screen Borders (Prevent Bot from leaving screen)
         if enemy_x < 0: enemy_x = 0
         if enemy_x > WIDTH - player_size: enemy_x = WIDTH - player_size
         if enemy_y < 0: enemy_y = 0
         if enemy_y > HEIGHT - player_size: enemy_y = HEIGHT - player_size
 
 
-        # ---> BOT CODE: SHOOTING (NISHANA LAGANA) <---
-        # Agar 1.5 second ho gaye hain purani goli chalaye hue, toh nayi goli chalayega
+        # ---> BOT CODE: SHOOTING (TARGETING) <---
+        # Fire a new bullet every 1.5 seconds
         if current_time - last_enemy_shot > 1.5: 
-            # math.atan2 se bot player ki exact direction (angle) nikalta hai
+            # Calculate the exact angle towards the player using math.atan2
             angle = math.atan2(player_y - enemy_y, player_x - enemy_x)
-            # Goli list mein add karta hai: [X, Y, X-Speed, Y-Speed]
+            # Add bullet to list: [X-pos, Y-pos, X-Speed, Y-Speed]
             enemy_bullets.append([enemy_x+20, enemy_y+20, math.cos(angle)*7, math.sin(angle)*7])
-            # Goli chalane ka time yaad kar leta hai
+            # Record the shooting time
             last_enemy_shot = current_time
 
-        # gemini end here
 
-
-        # BULLET LOGIC - Goliyon ka hisaab kitab
+        # BULLET LOGIC - Bullet processing
         
-        # 1. Player Ki Goliyaan
+        # 1. Player Bullets
         for b in bullets[:]:
             b[0] += b[2] 
             b[1] += b[3] 
@@ -191,65 +184,65 @@ while running:
                 
             pygame.draw.rect(screen, BULLET_COLOR, bullet_rect) 
             
-            # ---> BOT CODE: BOT KO DAMAGE DENA <---
+            # ---> BOT CODE: DAMAGE THE BOT <---
             enemy_rect_check = pygame.Rect(enemy_x, enemy_y, player_size, player_size)
-            # Agar player ki goli bot ko lag gayi
+            # If player bullet hits the bot
             if enemy_rect_check.collidepoint(b[0], b[1]):
-                enemy_hp -= 1 # Bot ka 1 HP kam kar do
+                enemy_hp -= 1 # Reduce Bot HP
                 bullets.remove(b)
             elif b[0] < 0 or b[0] > WIDTH or b[1] < 0 or b[1] > HEIGHT:
                 bullets.remove(b)
 
-        # 2. ---> BOT CODE: BOT KI GOLIYAAN AUR DAMAGE <---
+        # 2. ---> BOT CODE: BOT BULLETS & DAMAGE <---
         player_rect_check = pygame.Rect(player_x, player_y, player_size, player_size)
         shield_rect = pygame.Rect(player_x - 10, player_y - 10, 60, 60) 
 
         for b in enemy_bullets[:]:
-            b[0] += b[2] # Goli aage badhao (X)
-            b[1] += b[3] # Goli aage badhao (Y)
+            b[0] += b[2] # Move bullet (X)
+            b[1] += b[3] # Move bullet (Y)
             bullet_rect = pygame.Rect(b[0], b[1], 10, 10)
             
-            # Agar bot ki goli deewar par lag gayi, toh gayab kar do
+            # Remove bullet if it hits a wall
             if bullet_rect.collidelist(walls) != -1:
                 enemy_bullets.remove(b)
                 continue
                 
             pygame.draw.rect(screen, ENEMY_COLOR, bullet_rect)
 
-            # Agar Shield ON hai aur bot ki goli takrayi, toh bina HP kam kiye goli gayab kar do
+            # If Shield is ON, bullet is blocked without HP loss
             if is_shield_active and shield_rect.collidepoint(b[0], b[1]):
                 enemy_bullets.remove(b) 
-            # Agar bot ki goli sidha player ko lag gayi
+            # If Bot bullet hits the player
             elif player_rect_check.collidepoint(b[0], b[1]):
-                player_hp -= 1 # Player ka HP kam kar do
+                player_hp -= 1 # Reduce Player HP
                 enemy_bullets.remove(b)
             elif b[0] < 0 or b[0] > WIDTH or b[1] < 0 or b[1] > HEIGHT:
                 enemy_bullets.remove(b)
 
-        # Win/Lose Check (Koi mar gaya kya?)
-        if player_hp <= 0: game_over = True; win = False # Player mar gaya, bot jeet gaya
-        if enemy_hp <= 0: game_over = True; win = True   # Bot mar gaya, player jeet gaya
+        # Win/Lose Check (Death detection)
+        if player_hp <= 0: game_over = True; win = False # Player died, Bot wins
+        if enemy_hp <= 0: game_over = True; win = True   # Bot died, Player wins
 
 
-        # DRAWING (Sab kuch screen par banana)
+        # DRAWING (Render all objects on screen)
         for wall in walls:
             pygame.draw.rect(screen, WALL_COLOR, wall)
 
         player_name_text = name_font.render(player_name, True, WHITE)
         enemy_name_text = name_font.render(enemy_name, True, WHITE)
         screen.blit(player_name_text, (player_x, player_y - 20))
-        # ---> BOT CODE: BOT KA NAAM DRAW KARNA <---
+        # ---> BOT CODE: DRAW BOT NAME <---
         screen.blit(enemy_name_text, (enemy_x, enemy_y - 20))
 
         pygame.draw.rect(screen, PLAYER_COLOR, (player_x, player_y, player_size, player_size))
-        # ---> BOT CODE: BOT KO SCREEN PAR DRAW KARNA <---
+        # ---> BOT CODE: DRAW BOT ON SCREEN <---
         pygame.draw.rect(screen, ENEMY_COLOR, (enemy_x, enemy_y, player_size, player_size))
 
         if is_shield_active:
             pygame.draw.rect(screen, SHIELD_COLOR, (player_x-5, player_y-5, 50, 50), 3)
 
         
-        # UI & TEXT (Gun, Shield aur HP ka status)
+        # UI & TEXT (Gun, Shield, and HP status)
         time_left_fire = max(0, FIRE_COOLDOWN - (current_time - last_fire_time))
         if time_left_fire == 0:
             fire_msg = font.render("GUN READY!", True, (0, 255, 0)) 
